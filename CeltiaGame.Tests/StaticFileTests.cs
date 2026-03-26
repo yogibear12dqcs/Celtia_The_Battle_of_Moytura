@@ -38,120 +38,129 @@ public class CeltiaWebFactory : WebApplicationFactory<Program>
 /// game is served correctly: default document, HTML content, static asset
 /// MIME types, and 404 behaviour for missing paths.
 /// </summary>
-public class StaticFileTests : IClassFixture<CeltiaWebFactory>
+public class StaticFileTests
 {
-    private readonly HttpClient _client;
+    private static CeltiaWebFactory _factory = null!;
+    private static HttpClient _client = null!;
 
-    public StaticFileTests(CeltiaWebFactory factory)
+    [Before(Class)]
+    public static void CreateFactory()
     {
-        _client = factory.CreateClient();
+        _factory = new CeltiaWebFactory();
+        _client = _factory.CreateClient();
+    }
+
+    [After(Class)]
+    public static async Task DisposeFactory()
+    {
+        _client.Dispose();
+        await _factory.DisposeAsync();
     }
 
     // ── Default document ────────────────────────────────────────────────────
 
-    [Fact]
+    [Test]
     public async Task Get_Root_Returns_200_WithHtmlContentType()
     {
         var response = await _client.GetAsync("/");
 
         response.EnsureSuccessStatusCode();
-        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("text/html");
     }
 
-    [Fact]
+    [Test]
     public async Task Get_IndexHtml_Returns_200_WithHtmlContentType()
     {
         var response = await _client.GetAsync("/index.html");
 
         response.EnsureSuccessStatusCode();
-        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("text/html");
     }
 
     // ── HTML content ────────────────────────────────────────────────────────
 
-    [Fact]
+    [Test]
     public async Task Get_Root_Html_Contains_GameCanvas()
     {
         var html = await _client.GetStringAsync("/");
 
-        Assert.Contains("<canvas", html);
-        Assert.Contains("gameCanvas", html);
+        await Assert.That(html).Contains("<canvas");
+        await Assert.That(html).Contains("gameCanvas");
     }
 
-    [Fact]
+    [Test]
     public async Task Get_Root_Html_Contains_GameTitle()
     {
         var html = await _client.GetStringAsync("/");
 
-        Assert.Contains("Celtia", html);
+        await Assert.That(html).Contains("Celtia");
     }
 
-    [Fact]
+    [Test]
     public async Task Get_Root_Html_Contains_ControlsHint()
     {
         var html = await _client.GetStringAsync("/");
 
-        // The controls hint block should always be present
-        Assert.Contains("Arrow Keys", html);
-        Assert.Contains("Space", html);
+        await Assert.That(html).Contains("Arrow Keys");
+        await Assert.That(html).Contains("Space");
     }
 
     // ── Sprite assets (PNG) ─────────────────────────────────────────────────
 
-    [Theory]
-    [InlineData("/assets/bobs/LughAll.png")]
-    [InlineData("/assets/bobs/FirBolg.png")]
-    [InlineData("/assets/bobs/Fomorian.png")]
-    [InlineData("/assets/bobs/BALOR_2.png")]
-    [InlineData("/assets/bobs/DOMNANN.png")]
-    [InlineData("/assets/bobs/EIRIC.png")]
+    [Test]
+    [Arguments("/assets/bobs/LughAll.png")]
+    [Arguments("/assets/bobs/FirBolg.png")]
+    [Arguments("/assets/bobs/Fomorian.png")]
+    [Arguments("/assets/bobs/BALOR_2.png")]
+    [Arguments("/assets/bobs/DOMNANN.png")]
+    [Arguments("/assets/bobs/EIRIC.png")]
     public async Task Get_SpriteBob_Returns_200_WithPngContentType(string path)
     {
         var response = await _client.GetAsync(path);
 
         response.EnsureSuccessStatusCode();
-        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("image/png");
     }
 
-    [Theory]
-    [InlineData("/assets/backgrounds/intro.png")]
-    [InlineData("/assets/backgrounds/gamewin.png")]
-    [InlineData("/assets/backgrounds/arrivalback0.png")]
+    [Test]
+    [Arguments("/assets/backgrounds/intro.png")]
+    [Arguments("/assets/backgrounds/gamewin.png")]
+    [Arguments("/assets/backgrounds/arrivalback0.png")]
     public async Task Get_BackgroundImage_Returns_200_WithPngContentType(string path)
     {
         var response = await _client.GetAsync(path);
 
         response.EnsureSuccessStatusCode();
-        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("image/png");
     }
 
     // ── Sound assets (WAV) ──────────────────────────────────────────────────
 
-    [Theory]
-    [InlineData("/assets/sounds/attack.wav")]
-    [InlineData("/assets/sounds/damage.wav")]
-    [InlineData("/assets/sounds/bossattack.wav")]
-    [InlineData("/assets/sounds/bossdamage.wav")]
-    [InlineData("/assets/sounds/end.wav")]
+    [Test]
+    [Arguments("/assets/sounds/attack.wav")]
+    [Arguments("/assets/sounds/damage.wav")]
+    [Arguments("/assets/sounds/bossattack.wav")]
+    [Arguments("/assets/sounds/bossdamage.wav")]
+    [Arguments("/assets/sounds/end.wav")]
     public async Task Get_SoundAsset_Returns_200_WithAudioContentType(string path)
     {
         var response = await _client.GetAsync(path);
 
         response.EnsureSuccessStatusCode();
         var mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
-        Assert.StartsWith("audio/", mediaType);
+        await Assert.That(mediaType).StartsWith("audio/");
     }
 
     // ── 404 behaviour ───────────────────────────────────────────────────────
 
-    [Theory]
-    [InlineData("/nonexistent.xyz")]
-    [InlineData("/assets/bobs/missing.png")]
-    [InlineData("/assets/sounds/missing.wav")]
+    [Test]
+    [Arguments("/nonexistent.xyz")]
+    [Arguments("/assets/bobs/missing.png")]
+    [Arguments("/assets/sounds/missing.wav")]
     public async Task Get_NonExistentFile_Returns_404(string path)
     {
         var response = await _client.GetAsync(path);
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 }
