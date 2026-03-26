@@ -38,7 +38,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Confirm the game files are present
+      # 2. Pin to Node.js 24 (Node 20 LTS is end-of-life)
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # 3. Confirm the game files are present
       - name: Verify game assets
         run: |
           echo "Game directory contents:"
@@ -49,7 +55,7 @@ jobs:
           echo "  Sprites     : $(ls ${{ env.GAME_DIR }}/assets/bobs/*.png        | wc -l) PNG files"
           echo "  Sounds      : $(ls ${{ env.GAME_DIR }}/assets/sounds/*          | wc -l) WAV files"
 
-      # 3. Deploy the game/ folder directly to Azure App Service
+      # 4. Deploy the game/ folder directly to Azure App Service
       #    azure/webapps-deploy zips the folder and pushes via the Kudu REST API.
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
