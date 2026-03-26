@@ -51,3 +51,6 @@ publish/
 *.user
 *.suo
 .idea/
+
+# Test results / TUnit HTML reports
+TestResults/
