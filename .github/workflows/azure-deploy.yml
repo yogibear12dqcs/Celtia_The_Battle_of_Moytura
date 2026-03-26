@@ -1,15 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Celtia – Azure App Service Deployment Pipeline
+# Celtia – Azure App Service Deployment Pipeline (.NET 10 / ASP.NET Core)
 #
 # HOW TO CONNECT YOUR AZURE APP SERVICE
 # ──────────────────────────────────────
-# 1. In the Azure Portal, open your App Service → Deployment Center
-#    → Download publish profile.
-# 2. In GitHub: Settings → Secrets and variables → Actions → New repository secret
+# 1. In the Azure Portal, create a Windows App Service with runtime ".NET 10".
+# 2. Open the App Service → Deployment Center → Download publish profile.
+# 3. In GitHub: Settings → Secrets and variables → Actions → New repository secret
 #    Name:  AZURE_WEBAPP_PUBLISH_PROFILE
 #    Value: (paste the full contents of the downloaded .PublishSettings file)
-# 3. Set AZURE_WEBAPP_NAME below to match your App Service name (e.g. "celtia-game").
-# 4. Push to main – the workflow will build and deploy automatically.
+# 4. Set AZURE_WEBAPP_NAME below to match your App Service name (e.g. "celtia-game").
+# 5. Push to main – the workflow will build and deploy automatically.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Deploy to Azure App Service
@@ -23,8 +23,10 @@ on:
 env:
   # ── Change this to the name of your Azure App Service ──────────────────────
   AZURE_WEBAPP_NAME: celtia-game
-  # ── The sub-folder that contains the game (index.html lives here) ───────────
-  GAME_DIR: game
+  # ── .NET project path ──────────────────────────────────────────────────────
+  PROJECT_PATH: CeltiaGame/CeltiaGame.csproj
+  # ── dotnet publish output folder ───────────────────────────────────────────
+  PUBLISH_DIR: publish
 
 jobs:
   build-and-deploy:
@@ -38,28 +40,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Pin to Node.js 24 (Node 20 LTS is end-of-life)
-      - name: Set up Node.js 24
-        uses: actions/setup-node@v4
+      # 2. Install .NET 10 SDK
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: '24'
+          dotnet-version: '10.x'
 
-      # 3. Confirm the game files are present
-      - name: Verify game assets
-        run: |
-          echo "Game directory contents:"
-          ls -lh ${{ env.GAME_DIR }}
-          echo ""
-          echo "Asset counts:"
-          echo "  Backgrounds : $(ls ${{ env.GAME_DIR }}/assets/backgrounds/*.png | wc -l) PNG files"
-          echo "  Sprites     : $(ls ${{ env.GAME_DIR }}/assets/bobs/*.png        | wc -l) PNG files"
-          echo "  Sounds      : $(ls ${{ env.GAME_DIR }}/assets/sounds/*          | wc -l) WAV files"
+      # 3. Restore, build, and publish the ASP.NET Core project
+      - name: Build and publish
+        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ${{ env.PUBLISH_DIR }}
 
-      # 4. Deploy the game/ folder directly to Azure App Service
+      # 4. Deploy the publish output to Azure App Service
       #    azure/webapps-deploy zips the folder and pushes via the Kudu REST API.
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.GAME_DIR }}
+          package: ${{ env.PUBLISH_DIR }}
