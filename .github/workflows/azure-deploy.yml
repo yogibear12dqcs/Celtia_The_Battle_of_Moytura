@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Celtia – Azure App Service Deployment Pipeline
+#
+# HOW TO CONNECT YOUR AZURE APP SERVICE
+# ──────────────────────────────────────
+# 1. In the Azure Portal, open your App Service → Deployment Center
+#    → Download publish profile.
+# 2. In GitHub: Settings → Secrets and variables → Actions → New repository secret
+#    Name:  AZURE_WEBAPP_PUBLISH_PROFILE
+#    Value: (paste the full contents of the downloaded .PublishSettings file)
+# 3. Set AZURE_WEBAPP_NAME below to match your App Service name (e.g. "celtia-game").
+# 4. Push to main – the workflow will build and deploy automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main                                    # deploy on every push to main
+  workflow_dispatch:                            # allow manual trigger from GitHub UI
+
+env:
+  # ── Change this to the name of your Azure App Service ──────────────────────
+  AZURE_WEBAPP_NAME: celtia-game
+  # ── The sub-folder that contains the game (index.html lives here) ───────────
+  GAME_DIR: game
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read   # needed to checkout the repository
+
+    steps:
+      # 1. Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Confirm the game files are present
+      - name: Verify game assets
+        run: |
+          echo "Game directory contents:"
+          ls -lh ${{ env.GAME_DIR }}
+          echo ""
+          echo "Asset counts:"
+          echo "  Backgrounds : $(ls ${{ env.GAME_DIR }}/assets/backgrounds/*.png | wc -l) PNG files"
+          echo "  Sprites     : $(ls ${{ env.GAME_DIR }}/assets/bobs/*.png        | wc -l) PNG files"
+          echo "  Sounds      : $(ls ${{ env.GAME_DIR }}/assets/sounds/*          | wc -l) WAV files"
+
+      # 3. Deploy the game/ folder directly to Azure App Service
+      #    azure/webapps-deploy zips the folder and pushes via the Kudu REST API.
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.GAME_DIR }}
