@@ -23,8 +23,9 @@ on:
 env:
   # ── Change this to the name of your Azure App Service ──────────────────────
   AZURE_WEBAPP_NAME: celtia-game
-  # ── .NET project path ──────────────────────────────────────────────────────
+  # ── .NET project and test project paths ────────────────────────────────────
   PROJECT_PATH: CeltiaGame/CeltiaGame.csproj
+  TEST_PROJECT_PATH: CeltiaGame.Tests/CeltiaGame.Tests.csproj
   # ── dotnet publish output folder ───────────────────────────────────────────
   PUBLISH_DIR: publish
 
@@ -46,11 +47,19 @@ jobs:
         with:
           dotnet-version: '10.x'
 
-      # 3. Restore, build, and publish the ASP.NET Core project
-      - name: Build and publish
-        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ${{ env.PUBLISH_DIR }}
+      # 3. Restore all project dependencies once (shared by test and publish steps)
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.TEST_PROJECT_PATH }}
 
-      # 4. Deploy the publish output to Azure App Service
+      # 4. Run unit / integration tests – deployment is blocked if any test fails
+      - name: Run tests
+        run: dotnet test ${{ env.TEST_PROJECT_PATH }} -c Release --no-restore
+
+      # 5. Build and publish the ASP.NET Core project
+      - name: Build and publish
+        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ${{ env.PUBLISH_DIR }} --no-restore
+
+      # 6. Deploy the publish output to Azure App Service
       #    azure/webapps-deploy zips the folder and pushes via the Kudu REST API.
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3

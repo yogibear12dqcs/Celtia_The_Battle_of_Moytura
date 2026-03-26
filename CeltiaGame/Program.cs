@@ -9,3 +9,6 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.Run();
+
+// Make the implicit Program class visible to WebApplicationFactory in tests
+public partial class Program { }
