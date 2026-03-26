@@ -26,8 +26,11 @@ jobs:
       - name: Build with dotnet
         run: dotnet build --configuration Release
 
+      - name: Run tests
+        run: dotnet test CeltiaGame.Tests/CeltiaGame.Tests.csproj -c Release --no-build
+
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish CeltiaGame/CeltiaGame.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp" --no-build
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
