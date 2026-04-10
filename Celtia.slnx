@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CeltiaGame.Tests/CeltiaGame.Tests.csproj" />
+  <Project Path="CeltiaGame/CeltiaGame.csproj" />
+</Solution>

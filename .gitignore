@@ -43,3 +43,14 @@
 *.exe
 *.out
 *.app
+
+# .NET / ASP.NET Core build artifacts
+[Bb]in/
+[Oo]bj/
+publish/
+*.user
+*.suo
+.idea/
+
+# Test results / TUnit HTML reports
+TestResults/
