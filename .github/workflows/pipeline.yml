@@ -1,0 +1,68 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - CeltiaTheBattleofMoytura
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: Run tests
+        run: dotnet run --project CeltiaGame.Tests/CeltiaGame.Tests.csproj -c Release --no-build
+
+      - name: dotnet publish
+        run: dotnet publish CeltiaGame/CeltiaGame.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp" --no-build
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_534DE61029F949FABC0F9C9D424C14A1 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AC3E49EAC6D94321B38D5F770521A579 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_174537577E574C0CA08A08BDD90E3CE9 }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'CeltiaTheBattleofMoytura'
+          slot-name: 'Production'
+          package: .
+          
